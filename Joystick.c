@@ -97,13 +97,13 @@ void Input_Init(void)
 {
 	DDRB |= (1 << PB0); //Data Direction Register: writing a 1 to the bit enables output
 	PORTB |= (1 << PB0); //turns on LED attached to port PB0
-	DDRD = 0x00;
-	PORTD = 0x01;
+	DDRD &= ~(1 << PD0);
+	PORTD |= (1 << PD0);
 }
 
 void testInput(void)
 {
-	if (~PIND & (1 << PD1)) {
+	if (~PIND & (1 << PD0)) {
 		PORTB |= (1 << PB0); //turns on LED attached to port PB0
 	}
 	else {
