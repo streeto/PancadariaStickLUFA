@@ -45,14 +45,17 @@
  */
 const USB_Descriptor_HIDReport_Datatype_t PROGMEM JoystickReport[] =
 {
-	/* Use the HID class driver's standard Joystick report.
-	 *   Min X/Y/Z Axis values: -100
-	 *   Max X/Y/Z Axis values:  100
-	 *   Min physical X/Y/Z Axis values (used to determine resolution): -1
-	 *   Max physical X/Y/Z Axis values (used to determine resolution):  1
-	 *   Buttons: 2
-	 */
-	//HID_DESCRIPTOR_JOYSTICK(-100, 100, -1, 1, 2)
+/*
+ * Descriptor created using HID Descriptor Tool from usb.org.
+ * Gamepad with two axes (X and Y) and 10 buttons.
+ *
+ * The data described by this descriptor consists of 4 bytes:
+ *     B08 B07 B06 B05 B04 B03 B02 B01 .... Two bytes with buttons plus padding.
+ *       .   .   .   .   .   . B10 B09
+ *      X7  X6  X5  X4  X3  X2  X1  X0 .... 8 bit signed relative coordinate x.
+ *      Y7  Y6  Y5  Y4  Y3  Y2  Y1  Y0 .... 8 bit signed relative coordinate y.
+ */
+
 	0x05, 0x01,                    // USAGE_PAGE (Generic Desktop)
 	0x09, 0x05,                    // USAGE (Game Pad)
 	0xa1, 0x01,                    // COLLECTION (Application)
