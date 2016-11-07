@@ -34,6 +34,8 @@
  *  Modifications (C) 2016 André Luiz de Amorim, licensed under GPLv3.
  */
 
+#include <avr/io.h>
+#include <util/delay.h>
 #include "Joystick.h"
 
 /** Buffer to hold the previously generated HID report, for comparison purposes inside the HID class driver. */
@@ -66,9 +68,8 @@ USB_ClassInfo_HID_Device_t Joystick_HID_Interface =
 int main(void)
 {
 	SetupHardware();
-
+	MapInput();
 	GlobalInterruptEnable();
-
 	for (;;)
 	{
 		HID_Device_USBTask(&Joystick_HID_Interface);
@@ -91,6 +92,21 @@ void SetupHardware(void)
 	USB_Init();
 }
 
+void MapInput(void)
+{
+	char i;
+	if (!BUTTON_9_PRESSED || !BUTTON_10_PRESSED) {
+		return;
+	}
+	for (i = 0; i < 10; ++i) {
+		LED_map_on();
+		_delay_ms(100);
+		LED_map_off();
+		_delay_ms(100);
+	}
+
+}
+
 /** Configure joystick and button pins. */
 void Input_Init(void)
 {
@@ -108,22 +124,22 @@ void Input_Init(void)
 	PORTE |= MASK_INPUT_PORTE;
 }
 
-inline void LED1_on(void)
+inline void LED_click_on(void)
 {
 	PORTB &= ~(1 << PB0);
 }
 
-inline void LED1_off(void)
+inline void LED_click_off(void)
 {
 	PORTB |= (1 << PB0);
 }
 
-inline void LED2_on(void)
+inline void LED_map_on(void)
 {
 	PORTD &= ~(1 << PD5);
 }
 
-inline void LED2_off(void)
+inline void LED_map_off(void)
 {
 	PORTD |= (1 << PD5);
 }
@@ -212,10 +228,10 @@ bool CALLBACK_HID_Device_CreateHIDReport(USB_ClassInfo_HID_Device_t* const HIDIn
 	jsRep->ButtonH |= (BUTTON_9_PRESSED << 0);
 	jsRep->ButtonH |= (BUTTON_10_PRESSED << 1);
 
-	if (jsRep->ButtonL | jsRep->ButtonH) {
-		LED1_on();
+	if (jsRep->ButtonL || jsRep->ButtonH) {
+		LED_click_on();
 	} else {
-		LED1_off();
+		LED_click_off();
 	}
 
 	*ReportSize = sizeof(USB_JoystickReport_Data_t);

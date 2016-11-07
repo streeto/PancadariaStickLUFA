@@ -30,8 +30,6 @@
 
 /** \file
  *
-/** \file
- *
  *  Header file for Joystick.c. Based on the LUFA Joystick demo.
  *  Modifications (C) 2016 André Luiz de Amorim, licensed under GPLv3.
  */
@@ -108,11 +106,12 @@
 
 	/* Function Prototypes: */
 		void SetupHardware(void);
+		void MapInput(void);
 		void Input_Init(void);
-		static inline void LED1_on(void);
-		static inline void LED1_off(void);
-		static inline void LED2_on(void);
-		static inline void LED2_off(void);
+		static inline void LED_click_on(void);
+		static inline void LED_click_off(void);
+		static inline void LED_map_on(void);
+		static inline void LED_map_off(void);
 
 		void EVENT_USB_Device_Connect(void);
 		void EVENT_USB_Device_Disconnect(void);
