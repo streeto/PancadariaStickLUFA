@@ -71,7 +71,6 @@ int main(void)
 
 	for (;;)
 	{
-		testInput();
 		HID_Device_USBTask(&Joystick_HID_Interface);
 		USB_USBTask();
 	}
@@ -95,22 +94,39 @@ void SetupHardware(void)
 /** Configure joystick and button pins. */
 void Input_Init(void)
 {
-	DDRB |= (1 << PB0); //Data Direction Register: writing a 1 to the bit enables output
-	PORTB |= (1 << PB0); //turns on LED attached to port PB0
-	DDRD &= ~(1 << PD0);
-	PORTD |= (1 << PD0);
+	DDRB |= (1 << PB0); // Output: LED attached to PB0
+	DDRD |= (1 << PD5); // Output: LED attached to PD5
+
+	/* Inputs with pullup. */
+	DDRB &= ~MASK_INPUT_PORTB;
+	PORTB |= MASK_INPUT_PORTB;
+	DDRC &= ~MASK_INPUT_PORTC;
+	PORTC |= MASK_INPUT_PORTC;
+	DDRD &= ~MASK_INPUT_PORTD;
+	PORTD |= MASK_INPUT_PORTD;
+	DDRE &= ~MASK_INPUT_PORTE;
+	PORTE |= MASK_INPUT_PORTE;
 }
 
-void testInput(void)
+inline void LED1_on(void)
 {
-	if (~PIND & (1 << PD0)) {
-		PORTB |= (1 << PB0); //turns on LED attached to port PB0
-	}
-	else {
-		PORTB = 0;
-	}
+	PORTB &= ~(1 << PB0);
 }
 
+inline void LED1_off(void)
+{
+	PORTB |= (1 << PB0);
+}
+
+inline void LED2_on(void)
+{
+	PORTD &= ~(1 << PD5);
+}
+
+inline void LED2_off(void)
+{
+	PORTD |= (1 << PD5);
+}
 
 /** Event handler for the library USB Connection event. */
 void EVENT_USB_Device_Connect(void)
@@ -160,30 +176,47 @@ bool CALLBACK_HID_Device_CreateHIDReport(USB_ClassInfo_HID_Device_t* const HIDIn
                                          void* ReportData,
                                          uint16_t* const ReportSize)
 {
-	USB_JoystickReport_Data_t* JoystickReport = (USB_JoystickReport_Data_t*)ReportData;
+	USB_JoystickReport_Data_t* jsRep = (USB_JoystickReport_Data_t*)ReportData;
 
-	if (0) {
-		JoystickReport->X = 0;
+	if (AXIS_LEFT_PRESSED) {
+		jsRep->X = 0;
 	}
-	else if (0) {
-		JoystickReport->X = 255;
+	else if (AXIS_RIGHT_PRESSED) {
+		jsRep->X = 255;
 	}
 	else {
-		JoystickReport->X = 128;
+		jsRep->X = 128;
 	}
 
-	if (0) {
-		JoystickReport->Y = 0;
+	if (AXIS_DOWN_PRESSED) {
+		jsRep->Y = 0;
 	}
-	else if (0) {
-		JoystickReport->Y = 255;
+	else if (AXIS_UP_PRESSED) {
+		jsRep->Y = 255;
 	}
 	else {
-		JoystickReport->Y = 128;
+		jsRep->Y = 128;
 	}
 
-	JoystickReport->ButtonL = 0x00;
-	JoystickReport->ButtonH = 0x00;
+	jsRep->ButtonL = 0x00;
+	jsRep->ButtonL |= (BUTTON_1_PRESSED << 0);
+	jsRep->ButtonL |= (BUTTON_2_PRESSED << 1);
+	jsRep->ButtonL |= (BUTTON_3_PRESSED << 2);
+	jsRep->ButtonL |= (BUTTON_4_PRESSED << 3);
+	jsRep->ButtonL |= (BUTTON_5_PRESSED << 4);
+	jsRep->ButtonL |= (BUTTON_6_PRESSED << 5);
+	jsRep->ButtonL |= (BUTTON_7_PRESSED << 6);
+	jsRep->ButtonL |= (BUTTON_8_PRESSED << 7);
+
+	jsRep->ButtonH = 0x00;
+	jsRep->ButtonH |= (BUTTON_9_PRESSED << 0);
+	jsRep->ButtonH |= (BUTTON_10_PRESSED << 1);
+
+	if (jsRep->ButtonL | jsRep->ButtonH) {
+		LED1_on();
+	} else {
+		LED1_off();
+	}
 
 	*ReportSize = sizeof(USB_JoystickReport_Data_t);
 	return false;
