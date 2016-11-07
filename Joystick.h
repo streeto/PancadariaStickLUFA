@@ -30,7 +30,10 @@
 
 /** \file
  *
- *  Header file for Joystick.c.
+/** \file
+ *
+ *  Header file for Joystick.c. Based on the LUFA Joystick demo.
+ *  Modifications (C) 2016 André Luiz de Amorim, licensed under GPLv3.
  */
 
 #ifndef _JOYSTICK_H_

@@ -30,8 +30,8 @@
 
 /** \file
  *
- *  Main source file for the Joystick demo. This file contains the main tasks of
- *  the demo and is responsible for the initial application hardware configuration.
+ *	PancadariaStick main source file. Based on the LUFA Joystick demo.
+ *  Modifications (C) 2016 André Luiz de Amorim, licensed under GPLv3.
  */
 
 #include "Joystick.h"

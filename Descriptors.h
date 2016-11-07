@@ -31,6 +31,7 @@
 /** \file
  *
  *  Header file for Descriptors.c.
+ *  Modifications (C) 2016 André Luiz de Amorim, licensed under GPLv3.
  */
 
 #ifndef _DESCRIPTORS_H_

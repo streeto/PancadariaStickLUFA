@@ -33,7 +33,8 @@
  *  USB Device Descriptors, for library use when in USB device mode. Descriptors are special
  *  computer-readable structures which the host requests upon device enumeration, to determine
  *  the device's capabilities and functions.
- */
+ *  Modifications (C) 2016 André Luiz de Amorim, licensed under GPLv3.
+*/
 
 #include "Descriptors.h"
 
