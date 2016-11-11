@@ -61,6 +61,15 @@ USB_ClassInfo_HID_Device_t Joystick_HID_Interface =
 			},
 	};
 
+#define NUM_BUTTONS 10
+#define NUM_INPUT 14
+const InputMap_t inputMap[NUM_INPUT] = { { MAP_PORTB, _BV(5) }, { MAP_PORTB, _BV(4) }, {
+		MAP_PORTE, _BV(6) }, { MAP_PORTD, _BV(7) }, { MAP_PORTC, _BV(6) }, {
+		MAP_PORTD, _BV(4) }, { MAP_PORTD, _BV(0) }, { MAP_PORTD, _BV(1) }, {
+		MAP_PORTD, _BV(2) }, { MAP_PORTD, _BV(3) }, { MAP_PORTB, _BV(1) }, { MAP_PORTB, _BV(3) }, {
+		MAP_PORTB, _BV(2) }, { MAP_PORTB, _BV(6) } };
+
+uint8_t buttonOrder[NUM_BUTTONS];
 
 /** Main program entry point. This routine contains the overall program flow, including initial
  *  setup of all components and the main program loop.
@@ -78,7 +87,7 @@ int main(void)
 }
 
 /** Configures the board hardware and chip peripherals for the demo's functionality. */
-void SetupHardware(void)
+static void SetupHardware(void)
 {
 	/* Disable watchdog if enabled by bootloader/fuses */
 	MCUSR &= ~(1 << WDRF);
@@ -92,56 +101,110 @@ void SetupHardware(void)
 	USB_Init();
 }
 
-void MapInput(void)
+static void MapInput(void)
 {
-	char i;
-	if (!BUTTON_9_PRESSED || !BUTTON_10_PRESSED) {
+	uint8_t button;
+
+	/* Default button mapping */
+	for (button = 0; button < NUM_BUTTONS; ++button) {
+		buttonOrder[button] = button;
+	}
+	if (!InputPressed(8) || !InputPressed(9)) {
+		// TODO: Load from eeprom.
 		return;
 	}
-	for (i = 0; i < 10; ++i) {
-		LED_map_on();
+	for (;;) {
+		// TODO: Map the buttons.
+		LED_map_toggle();
 		_delay_ms(100);
-		LED_map_off();
-		_delay_ms(100);
+		if (InputPressed(0)) {
+			LED_map_off();
+			return;
+		}
 	}
+	// TODO: Write mapping to eeprom.
 
 }
 
 /** Configure joystick and button pins. */
-void Input_Init(void)
+static void Input_Init(void)
 {
+	InputMap_t map;
+	uint8_t i;
+
 	DDRB |= (1 << PB0); // Output: LED attached to PB0
 	DDRD |= (1 << PD5); // Output: LED attached to PD5
 
 	/* Inputs with pullup. */
-	DDRB &= ~MASK_INPUT_PORTB;
-	PORTB |= MASK_INPUT_PORTB;
-	DDRC &= ~MASK_INPUT_PORTC;
-	PORTC |= MASK_INPUT_PORTC;
-	DDRD &= ~MASK_INPUT_PORTD;
-	PORTD |= MASK_INPUT_PORTD;
-	DDRE &= ~MASK_INPUT_PORTE;
-	PORTE |= MASK_INPUT_PORTE;
+	for(i = 0; i < NUM_INPUT; ++i) {
+		map = inputMap[i];
+		switch (map.port) {
+		case MAP_PORTB:
+			DDRB &= ~map.mask;
+			PORTB |= map.mask;
+			break;
+		case MAP_PORTC:
+			DDRC &= ~map.mask;
+			PORTC |= map.mask;
+			break;
+		case MAP_PORTD:
+			DDRD &= ~map.mask;
+			PORTD |= map.mask;
+			break;
+		case MAP_PORTE:
+			DDRE &= ~map.mask;
+			PORTE |= map.mask;
+		}
+	}
 }
 
-inline void LED_click_on(void)
+static bool InputPressed(uint8_t input) {
+	InputMap_t map;
+	if (input < NUM_BUTTONS) {
+		input = buttonOrder[input];
+	}
+	map = inputMap[input];
+	switch (map.port) {
+	case MAP_PORTB:
+		return ~PINB & map.mask;
+	case MAP_PORTC:
+		return ~PINC & map.mask;
+	case MAP_PORTD:
+		return ~PIND & map.mask;
+	case MAP_PORTE:
+		return ~PINE & map.mask;
+	}
+	return false;
+
+}
+
+static inline void LED_click_on(void)
 {
 	PORTB &= ~(1 << PB0);
 }
 
-inline void LED_click_off(void)
+static inline void LED_click_off(void)
 {
 	PORTB |= (1 << PB0);
 }
 
-inline void LED_map_on(void)
+static inline void LED_map_on(void)
 {
 	PORTD &= ~(1 << PD5);
 }
 
-inline void LED_map_off(void)
+static inline void LED_map_off(void)
 {
 	PORTD |= (1 << PD5);
+}
+
+static inline void LED_map_toggle(void)
+{
+	if (~PORTD & (1 << PD5)) {
+		LED_map_off();
+	} else {
+		LED_map_on();
+	}
 }
 
 /** Event handler for the library USB Connection event. */
@@ -194,20 +257,20 @@ bool CALLBACK_HID_Device_CreateHIDReport(USB_ClassInfo_HID_Device_t* const HIDIn
 {
 	USB_JoystickReport_Data_t* jsRep = (USB_JoystickReport_Data_t*)ReportData;
 
-	if (AXIS_LEFT_PRESSED) {
+	if (InputPressed(AXIS_LEFT)) {
 		jsRep->X = 0;
 	}
-	else if (AXIS_RIGHT_PRESSED) {
+	else if (InputPressed(AXIS_RIGHT)) {
 		jsRep->X = 255;
 	}
 	else {
 		jsRep->X = 128;
 	}
 
-	if (AXIS_DOWN_PRESSED) {
+	if (InputPressed(AXIS_DOWN)) {
 		jsRep->Y = 0;
 	}
-	else if (AXIS_UP_PRESSED) {
+	else if (InputPressed(AXIS_UP)) {
 		jsRep->Y = 255;
 	}
 	else {
@@ -215,18 +278,18 @@ bool CALLBACK_HID_Device_CreateHIDReport(USB_ClassInfo_HID_Device_t* const HIDIn
 	}
 
 	jsRep->ButtonL = 0x00;
-	jsRep->ButtonL |= (BUTTON_1_PRESSED << 0);
-	jsRep->ButtonL |= (BUTTON_2_PRESSED << 1);
-	jsRep->ButtonL |= (BUTTON_3_PRESSED << 2);
-	jsRep->ButtonL |= (BUTTON_4_PRESSED << 3);
-	jsRep->ButtonL |= (BUTTON_5_PRESSED << 4);
-	jsRep->ButtonL |= (BUTTON_6_PRESSED << 5);
-	jsRep->ButtonL |= (BUTTON_7_PRESSED << 6);
-	jsRep->ButtonL |= (BUTTON_8_PRESSED << 7);
+	jsRep->ButtonL |= InputPressed(0) << 0;
+	jsRep->ButtonL |= InputPressed(1) << 1;
+	jsRep->ButtonL |= InputPressed(2) << 2;
+	jsRep->ButtonL |= InputPressed(3) << 3;
+	jsRep->ButtonL |= InputPressed(4) << 4;
+	jsRep->ButtonL |= InputPressed(5) << 5;
+	jsRep->ButtonL |= InputPressed(6) << 6;
+	jsRep->ButtonL |= InputPressed(7) << 7;
 
 	jsRep->ButtonH = 0x00;
-	jsRep->ButtonH |= (BUTTON_9_PRESSED << 0);
-	jsRep->ButtonH |= (BUTTON_10_PRESSED << 1);
+	jsRep->ButtonH |= InputPressed(8) << 0;
+	jsRep->ButtonH |= InputPressed(9) << 1;
 
 	if (jsRep->ButtonL || jsRep->ButtonH) {
 		LED_click_on();

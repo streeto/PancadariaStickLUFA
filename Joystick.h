@@ -67,51 +67,37 @@
 			uint8_t  Y; /**< Current absolute joystick Y position, as a signed 8-bit integer */
 		} USB_JoystickReport_Data_t;
 
+		/* Button mapping structures: */
+		typedef enum {
+			AXIS_UP = 10,
+			AXIS_DOWN,
+			AXIS_LEFT,
+			AXIS_RIGHT
+		} Axes_t;
 
-	/* input definitions: */
-		#define AXIS_UP_PIN (1 << PB1)
-		#define AXIS_UP_PRESSED ((~PINB & AXIS_UP_PIN) >> PB1)
-		#define AXIS_DOWN_PIN (1 << PB3)
-		#define AXIS_DOWN_PRESSED ((~PINB & AXIS_DOWN_PIN) >> PB3)
-		#define AXIS_LEFT_PIN (1 << PB2)
-		#define AXIS_LEFT_PRESSED ((~PINB & AXIS_LEFT_PIN) >> PB2)
-		#define AXIS_RIGHT_PIN (1 << PB6)
-		#define AXIS_RIGHT_PRESSED ((~PINB & AXIS_RIGHT_PIN) >> PB6)
+		typedef enum {
+			MAP_PORTB = 0,
+			MAP_PORTC,
+			MAP_PORTD,
+			MAP_PORTE
+		} MapPort_t;
 
-		#define BUTTON_1_PIN (1 << PB5)
-		#define BUTTON_1_PRESSED ((~PINB & BUTTON_1_PIN) >> PB5)
-		#define BUTTON_2_PIN (1 << PB4)
-		#define BUTTON_2_PRESSED ((~PINB & BUTTON_2_PIN) >> PB4)
-		#define BUTTON_3_PIN (1 << PE6)
-		#define BUTTON_3_PRESSED ((~PINE & BUTTON_3_PIN) >> PE6)
-		#define BUTTON_4_PIN (1 << PD7)
-		#define BUTTON_4_PRESSED ((~PIND & BUTTON_4_PIN) >> PD7)
-		#define BUTTON_5_PIN (1 << PC6)
-		#define BUTTON_5_PRESSED ((~PINC & BUTTON_5_PIN) >> PC6)
-		#define BUTTON_6_PIN (1 << PD4)
-		#define BUTTON_6_PRESSED ((~PIND & BUTTON_6_PIN) >> PD4)
-		#define BUTTON_7_PIN (1 << PD0)
-		#define BUTTON_7_PRESSED ((~PIND & BUTTON_7_PIN) >> PD0)
-		#define BUTTON_8_PIN (1 << PD1)
-		#define BUTTON_8_PRESSED ((~PIND & BUTTON_8_PIN) >> PD1)
-		#define BUTTON_9_PIN (1 << PD2)
-		#define BUTTON_9_PRESSED ((~PIND & BUTTON_9_PIN) >> PD2)
-		#define BUTTON_10_PIN (1 << PD3)
-		#define BUTTON_10_PRESSED ((~PIND & BUTTON_10_PIN) >> PD3)
-
-		#define MASK_INPUT_PORTB (AXIS_UP_PIN | AXIS_DOWN_PIN | AXIS_LEFT_PIN | AXIS_RIGHT_PIN | BUTTON_1_PIN | BUTTON_2_PIN)
-		#define MASK_INPUT_PORTC (BUTTON_5_PIN)
-		#define MASK_INPUT_PORTD (BUTTON_4_PIN | BUTTON_6_PIN | BUTTON_7_PIN | BUTTON_8_PIN | BUTTON_9_PIN | BUTTON_10_PIN)
-		#define MASK_INPUT_PORTE (BUTTON_3_PIN)
+		typedef struct {
+			MapPort_t port;
+			uint8_t mask;
+		} InputMap_t;
 
 	/* Function Prototypes: */
-		void SetupHardware(void);
-		void MapInput(void);
-		void Input_Init(void);
+		static void SetupHardware(void);
+		static void MapInput(void);
+		static void Input_Init(void);
+
+		static bool InputPressed(uint8_t button);
 		static inline void LED_click_on(void);
 		static inline void LED_click_off(void);
 		static inline void LED_map_on(void);
 		static inline void LED_map_off(void);
+		static inline void LED_map_toggle(void);
 
 		void EVENT_USB_Device_Connect(void);
 		void EVENT_USB_Device_Disconnect(void);
