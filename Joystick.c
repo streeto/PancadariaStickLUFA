@@ -117,12 +117,12 @@ static bool IsMapped(uint8_t button, uint8_t orderMap[])
 
 static void MapInput(void)
 {
-	uint8_t button, mapped, count;
+	uint8_t input, button, count;
 	uint8_t newButtonOrder[NUM_BUTTONS];
 
 	/* Default button mapping. */
-	for (button = 0; button < NUM_BUTTONS; ++button) {
-		buttonOrder[button] = button;
+	for (input = 0; input < NUM_BUTTONS; ++input) {
+		buttonOrder[input] = input;
 	}
 	if (!InputPressed(8) || !InputPressed(9)) {
 		/* No remapping, load previous map. */
@@ -131,12 +131,17 @@ static void MapInput(void)
 	}
 
 	/* Will remap buttons. Initialize blank new map. */
-	for (button = 0; button < NUM_BUTTONS; ++button) {
-		newButtonOrder[button] = 0xFF;
+	for (input = 0; input < NUM_BUTTONS; ++input) {
+		newButtonOrder[input] = 0xFF;
 	}
-	button = 0;
-	while (button < NUM_BUTTONS) {
-		mapped = 0;
+	/* Blink slowly to inform the user we are remapping. */
+	for (count = 0; count < 20; ++count) {
+		LED_toggle();
+		_delay_ms(100);
+	}
+	input = 0;
+	while (input < NUM_BUTTONS) {
+		button = 0;
 		count = 0;
 		/*
 		 * Cycle through inputs and see if it keeps pressed for
@@ -145,27 +150,27 @@ static void MapInput(void)
 		while (count < 20) {
 			++count;
 			_delay_ms(50);
-			if (InputPressed(mapped) && !IsMapped(mapped, newButtonOrder)) {
+			if (InputPressed(button) && !IsMapped(button, newButtonOrder)) {
 				LED_on();
 			} else {
 				LED_toggle();
 				count = 0;
-				++mapped;
-				if (mapped >= NUM_BUTTONS) {
-					mapped = 0;
+				++button;
+				if (button >= NUM_BUTTONS) {
+					button = 0;
 				}
 			}
 		}
 		/* Found the new input for this button. */
 		LED_off();
 		_delay_ms(1000);
-		newButtonOrder[button] = mapped;
-		++button;
+		newButtonOrder[input] = button;
+		++input;
 	}
 	/* Done remapping. Use the new map and save to eeprom. */
 	LED_off();
-	for (button = 0; button < NUM_BUTTONS; ++button) {
-		buttonOrder[button] = newButtonOrder[button];
+	for (input = 0; input < NUM_BUTTONS; ++input) {
+		buttonOrder[input] = newButtonOrder[input];
 	}
 	eeprom_write_block(buttonOrder, eeprom_buttonOrder, NUM_BUTTONS);
 }
