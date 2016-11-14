@@ -69,11 +69,11 @@
 
 		/* Button mapping structures: */
 		typedef enum {
-			AXIS_UP = 10,
-			AXIS_DOWN,
-			AXIS_LEFT,
-			AXIS_RIGHT
-		} Axes_t;
+			MAP_AXIS_UP = 10,
+			MAP_AXIS_DOWN,
+			MAP_AXIS_LEFT,
+			MAP_AXIS_RIGHT
+		} MapAxes_t;
 
 		typedef enum {
 			MAP_PORTB = 0,
@@ -89,15 +89,15 @@
 
 	/* Function Prototypes: */
 		static void SetupHardware(void);
-		static void MapInput(void);
-		static void Input_Init(void);
+		static void InputInit(void);
 
+		static void MapInput(void);
+		static bool IsMapped(uint8_t button, uint8_t orderMap[]);
 		static bool InputPressed(uint8_t button);
-		static inline void LED_click_on(void);
-		static inline void LED_click_off(void);
-		static inline void LED_map_on(void);
-		static inline void LED_map_off(void);
-		static inline void LED_map_toggle(void);
+
+		static inline void LED_on(void);
+		static inline void LED_off(void);
+		static inline void LED_toggle(void);
 
 		void EVENT_USB_Device_Connect(void);
 		void EVENT_USB_Device_Disconnect(void);

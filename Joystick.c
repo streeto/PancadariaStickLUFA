@@ -35,6 +35,7 @@
  */
 
 #include <avr/io.h>
+#include <avr/eeprom.h>
 #include <util/delay.h>
 #include "Joystick.h"
 
@@ -61,6 +62,7 @@ USB_ClassInfo_HID_Device_t Joystick_HID_Interface =
 			},
 	};
 
+/* Button mapping structures: */
 #define NUM_BUTTONS 10
 #define NUM_INPUT 14
 const InputMap_t inputMap[NUM_INPUT] = { { MAP_PORTB, _BV(5) }, { MAP_PORTB, _BV(4) }, {
@@ -70,6 +72,7 @@ const InputMap_t inputMap[NUM_INPUT] = { { MAP_PORTB, _BV(5) }, { MAP_PORTB, _BV
 		MAP_PORTB, _BV(2) }, { MAP_PORTB, _BV(6) } };
 
 uint8_t buttonOrder[NUM_BUTTONS];
+uint8_t eeprom_buttonOrder[NUM_BUTTONS] EEMEM = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
 
 /** Main program entry point. This routine contains the overall program flow, including initial
  *  setup of all components and the main program loop.
@@ -97,42 +100,82 @@ static void SetupHardware(void)
 	clock_prescale_set(clock_div_1);
 
 	/* Hardware Initialization */
-	Input_Init();
+	InputInit();
 	USB_Init();
+}
+
+static bool IsMapped(uint8_t button, uint8_t orderMap[])
+{
+	uint8_t i;
+	for (i = 0; i < NUM_BUTTONS; ++i) {
+		if (orderMap[i] == button) {
+			return true;
+		}
+	}
+	return false;
 }
 
 static void MapInput(void)
 {
-	uint8_t button;
+	uint8_t button, mapped, count;
+	uint8_t newButtonOrder[NUM_BUTTONS];
 
-	/* Default button mapping */
+	/* Default button mapping. */
 	for (button = 0; button < NUM_BUTTONS; ++button) {
 		buttonOrder[button] = button;
 	}
 	if (!InputPressed(8) || !InputPressed(9)) {
-		// TODO: Load from eeprom.
+		/* No remapping, load previous map. */
+		eeprom_read_block(buttonOrder, eeprom_buttonOrder, NUM_BUTTONS);
 		return;
 	}
-	for (;;) {
-		// TODO: Map the buttons.
-		LED_map_toggle();
-		_delay_ms(100);
-		if (InputPressed(0)) {
-			LED_map_off();
-			return;
-		}
-	}
-	// TODO: Write mapping to eeprom.
 
+	/* Will remap buttons. Initialize blank new map. */
+	for (button = 0; button < NUM_BUTTONS; ++button) {
+		newButtonOrder[button] = 0xFF;
+	}
+	button = 0;
+	while (button < NUM_BUTTONS) {
+		mapped = 0;
+		count = 0;
+		/*
+		 * Cycle through inputs and see if it keeps pressed for
+		 * one second. Can't map the same input to another button.
+		 */
+		while (count < 20) {
+			++count;
+			_delay_ms(50);
+			if (InputPressed(mapped) && !IsMapped(mapped, newButtonOrder)) {
+				LED_on();
+			} else {
+				LED_toggle();
+				count = 0;
+				++mapped;
+				if (mapped >= NUM_BUTTONS) {
+					mapped = 0;
+				}
+			}
+		}
+		/* Found the new input for this button. */
+		LED_off();
+		_delay_ms(1000);
+		newButtonOrder[button] = mapped;
+		++button;
+	}
+	/* Done remapping. Use the new map and save to eeprom. */
+	LED_off();
+	for (button = 0; button < NUM_BUTTONS; ++button) {
+		buttonOrder[button] = newButtonOrder[button];
+	}
+	eeprom_write_block(buttonOrder, eeprom_buttonOrder, NUM_BUTTONS);
 }
 
 /** Configure joystick and button pins. */
-static void Input_Init(void)
+static void InputInit(void)
 {
 	InputMap_t map;
 	uint8_t i;
 
-	DDRB |= (1 << PB0); // Output: LED attached to PB0
 	DDRD |= (1 << PD5); // Output: LED attached to PD5
 
 	/* Inputs with pullup. */
@@ -178,32 +221,22 @@ static bool InputPressed(uint8_t input) {
 
 }
 
-static inline void LED_click_on(void)
-{
-	PORTB &= ~(1 << PB0);
-}
-
-static inline void LED_click_off(void)
-{
-	PORTB |= (1 << PB0);
-}
-
-static inline void LED_map_on(void)
+static inline void LED_on(void)
 {
 	PORTD &= ~(1 << PD5);
 }
 
-static inline void LED_map_off(void)
+static inline void LED_off(void)
 {
 	PORTD |= (1 << PD5);
 }
 
-static inline void LED_map_toggle(void)
+static inline void LED_toggle(void)
 {
 	if (~PORTD & (1 << PD5)) {
-		LED_map_off();
+		LED_off();
 	} else {
-		LED_map_on();
+		LED_on();
 	}
 }
 
@@ -257,20 +290,20 @@ bool CALLBACK_HID_Device_CreateHIDReport(USB_ClassInfo_HID_Device_t* const HIDIn
 {
 	USB_JoystickReport_Data_t* jsRep = (USB_JoystickReport_Data_t*)ReportData;
 
-	if (InputPressed(AXIS_LEFT)) {
+	if (InputPressed(MAP_AXIS_LEFT)) {
 		jsRep->X = 0;
 	}
-	else if (InputPressed(AXIS_RIGHT)) {
+	else if (InputPressed(MAP_AXIS_RIGHT)) {
 		jsRep->X = 255;
 	}
 	else {
 		jsRep->X = 128;
 	}
 
-	if (InputPressed(AXIS_DOWN)) {
+	if (InputPressed(MAP_AXIS_DOWN)) {
 		jsRep->Y = 0;
 	}
-	else if (InputPressed(AXIS_UP)) {
+	else if (InputPressed(MAP_AXIS_UP)) {
 		jsRep->Y = 255;
 	}
 	else {
@@ -292,9 +325,9 @@ bool CALLBACK_HID_Device_CreateHIDReport(USB_ClassInfo_HID_Device_t* const HIDIn
 	jsRep->ButtonH |= InputPressed(9) << 1;
 
 	if (jsRep->ButtonL || jsRep->ButtonH) {
-		LED_click_on();
+		LED_on();
 	} else {
-		LED_click_off();
+		LED_off();
 	}
 
 	*ReportSize = sizeof(USB_JoystickReport_Data_t);
